@@ -271,31 +271,32 @@ function Home() {
             radius="md"
             withBorder
         >
-            <Card.Section>
-                <div className="image-container">
-                    <div className="image-content">
-                        <Image
-                            className="heroImage"
-                            src={
-                                imageError
-                                    ? "ghost.svg"
-                                    : restaurant.hero_image ||
-                                      "https://placehold.co/600x400"
-                            }
-                            alt="Restaurant Image"
-                            onLoad={() => {
-                                setImageLoading(false);
-                                setImageError(false);
-                            }}
-                            onError={() => {
-                                setImageLoading(false);
-                                setImageError(true);
-                            }}
-                        />
-                    </div>
-                </div>
-            </Card.Section>
             <Anchor href={restaurant.redirection_url} target="_blank">
+                <Card.Section>
+                    <div className="image-container">
+                        <div className="image-content">
+                            <Image
+                                className="heroImage"
+                                src={
+                                    imageError
+                                        ? "ghost.svg"
+                                        : restaurant.hero_image ||
+                                          "https://placehold.co/600x400"
+                                }
+                                alt="Restaurant Image"
+                                onLoad={() => {
+                                    setImageLoading(false);
+                                    setImageError(false);
+                                }}
+                                onError={() => {
+                                    setImageLoading(false);
+                                    setImageError(true);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </Card.Section>
+
                 <Text fz="lg" fw={500} mt="md">
                     {restaurant.name}
                 </Text>
