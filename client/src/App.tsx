@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "react-query";
 import { createTheme, MantineProvider } from "@mantine/core";
 import { Route, Routes, BrowserRouter } from "react-router-dom";
+import { LocationProvider } from "./LocationContext";
 import "@mantine/core/styles.css";
 import "./App.css";
 
@@ -31,7 +32,9 @@ function App() {
     return (
         <MantineProvider theme={theme} defaultColorScheme="dark">
             <QueryClientProvider client={queryClient}>
-                <Router />
+                <LocationProvider>
+                    <Router />
+                </LocationProvider>
             </QueryClientProvider>
         </MantineProvider>
     );
