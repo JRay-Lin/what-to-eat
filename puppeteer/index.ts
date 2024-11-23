@@ -1,11 +1,16 @@
 import puppeteer, { Browser } from "puppeteer";
 import express, { Request, Response } from "express";
 
-
-interface MenuItem {
-    id: number;
+interface MenuRespond {
     name: string;
-    description: string;
+    code: string;
+    web_path: string;
+    menus: Menu[];
+}
+
+interface Menu {
+    id: number;
+    menu_categories: MenuCategory[];
 }
 
 interface MenuCategory {
@@ -15,18 +20,11 @@ interface MenuCategory {
     menu_items: MenuItem[];
 }
 
-interface Menu {
+interface MenuItem {
     id: number;
-    menu_categories: MenuCategory[];
-}
-
-interface MenuRespond {
     name: string;
-    code: string;
-    web_path: string;
-    menus: Menu[];
+    description: string;
 }
-
 const app = express();
 
 // Middleware to parse JSON request bodies
@@ -182,6 +180,12 @@ app.post("/menu", async (req: Request, res: Response): Promise<void> => {
             }
             return result;
         });
+
+        if ('menus' in transformedResults[0]) {
+            console.log(transformedResults[0].menus[0].menu_categories);
+        } else {
+            console.error(`Error for vendor ${transformedResults[0].code}: ${transformedResults[0].error}`);
+        }
 
         res.status(200).send({ success: true, results: transformedResults });
     } catch (error) {

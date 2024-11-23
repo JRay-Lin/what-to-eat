@@ -3,6 +3,7 @@ package vertex
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -61,7 +62,7 @@ func fetchNearRestaurant(latitude float64, longitude float64, cuisineIDs []strin
 	q.Add("dynamic_pricing", "0")
 	q.Add("configuration", "Original")
 	q.Add("vertical", "restaurants")
-	q.Add("limit", "1")
+	q.Add("limit", "999")
 	q.Add("offset", "0")
 	q.Add("customer_type", "regular")
 
@@ -83,7 +84,7 @@ func fetchNearRestaurant(latitude float64, longitude float64, cuisineIDs []strin
 	if err := json.NewDecoder(resp.Body).Decode(&foodpandaResp); err != nil {
 		return nil, fmt.Errorf("error decoding Foodpanda API response: %w", err)
 	}
-	fmt.Println("Foodpanda resp", foodpandaResp.Data.Items)
+	// fmt.Println("Foodpanda resp", foodpandaResp.Data.Items)
 
 	// Transform response into MenuFetchRestaurantInfo format
 	var restaurantInfos []MenuFetchRestaurantInfo
@@ -99,18 +100,16 @@ func fetchNearRestaurant(latitude float64, longitude float64, cuisineIDs []strin
 			restaurantInfos = append(restaurantInfos, info)
 		}
 	}
-	fmt.Println("Restaurant info", restaurantInfos)
+	// fmt.Println("Restaurant info", restaurantInfos)
 
 	return restaurantInfos, nil
 }
 
-func fetchRestaurantMenu(restaurantCodes []string, latitude, longitude float64) (map[string][]byte, error) {
-	// Prepare the HTTP client
+func fetchRestaurantMenu(restaurantCodes []string, latitude, longitude float64) (map[string]interface{}, error) {
 	client := &http.Client{
-		Timeout: 10 * time.Second, // Add timeout for safety
+		Timeout: 10 * time.Second,
 	}
 
-	// Prepare the request payload in the new structure
 	payload := map[string]interface{}{
 		"code":      restaurantCodes,
 		"longitude": longitude,
@@ -122,7 +121,6 @@ func fetchRestaurantMenu(restaurantCodes []string, latitude, longitude float64) 
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	// Make the POST request to localhost:3001/menu
 	req, err := http.NewRequest("POST", "http://localhost:3001/menu", strings.NewReader(string(payloadBytes)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create menu request: %w", err)
@@ -130,49 +128,44 @@ func fetchRestaurantMenu(restaurantCodes []string, latitude, longitude float64) 
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute the request
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch restaurant menus: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check if the response status is OK
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("menu request returned non-OK status: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("menu request returned non-OK status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse the response
 	var menuResponse struct {
 		Success bool                     `json:"success"`
-		Results []map[string]interface{} `json:"results"` // Adjusted based on expected structure
+		Results []map[string]interface{} `json:"results"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&menuResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode menu response: %w", err)
 	}
 
-	// Check if the success flag is false
 	if !menuResponse.Success {
 		return nil, fmt.Errorf("menu request failed")
 	}
 
-	// Map results for easier handling
-	menuMap := make(map[string][]byte)
+	menuMap := make(map[string]interface{})
 	for _, result := range menuResponse.Results {
-		code := result["code"].(string) // Ensure safe casting
-		menuJSON, err := json.Marshal(result)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal menu result: %w", err)
+		code, ok := result["code"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid code type")
 		}
-		menuMap[code] = menuJSON
+		menuMap[code] = result // Keep as raw interface{}
 	}
 
 	return menuMap, nil
 }
 
-// func aiSuggestion() {
+func aiSuggestion() {
 
-// }
+}
 
 func RestaurantSuggestion(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
@@ -208,7 +201,7 @@ func RestaurantSuggestion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch menus for all restaurants
-	menus, err := fetchRestaurantMenu(restaurantCodes, latitude, longitude) // Pass latitude and longitude
+	menus, err := fetchRestaurantMenu(restaurantCodes, latitude, longitude)
 	if err != nil {
 		fmt.Println("Error fetching menus:", err)
 		http.Error(w, "Failed to fetch menus: "+err.Error(), http.StatusInternalServerError)
@@ -218,7 +211,7 @@ func RestaurantSuggestion(w http.ResponseWriter, r *http.Request) {
 	// Prepare the final response
 	response := struct {
 		Restaurants []MenuFetchRestaurantInfo `json:"restaurants"`
-		Menus       map[string][]byte         `json:"menus"`
+		Menus       map[string]interface{}    `json:"menus"` // Changed type to interface{}
 	}{
 		Restaurants: restaurantInfos,
 		Menus:       menus,
