@@ -60,7 +60,7 @@ func FilteredCategories(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		},
-		// Rest of the configuration remains the same
+
 		SystemInstruction: struct {
 			Parts []struct {
 				Text string `json:"text"`
@@ -70,7 +70,7 @@ func FilteredCategories(w http.ResponseWriter, r *http.Request) {
 				Text string `json:"text"`
 			}{
 				{
-					Text: "You are a culinary consultant specializing in recommending cuisines based on user preferences. You will receive a JSON object containing user preferences, location data, and a list of available cuisine categories. Your task is to analyze the user preferences and select the categories that best match those preferences. Return the selected categories in a JSON array of objects, where each object contains the 'id' and 'label' of the selected category. If no categories match the user's preferences, return an empty JSON array.",
+					Text: "You are a culinary consultant specializing in recommending cuisines based on user preferences. You will receive a JSON object containing user preferences, location data, and a list of available cuisine categories. Your task is to analyze the user preferences and select the categories that best match those preferences.  Return the selected categories in a JSON array of objects, where each object contains the 'id' and 'label' of the selected category.  If no categories match the user's preferences, return an empty JSON array.\n\nInput JSON:\n```json\n{\"userPreference\": \"User's preferences \", \"location\": {\"latitude\": 24.1779755, \"longitude\": 120.6494471}, \"availableCategories\": [{\"id\": 163, \"label\": \"三明治 / 吐司\"}, {\"id\": 166, \"label\": \"中式\"}, {\"id\": 1210, \"label\": \"丼飯/蓋飯\"}, {\"id\": 1215, \"label\": \"便當\"}, {\"id\": 225, \"label\": \"健康餐\"}, {\"id\": 248, \"label\": \"台式\"}, {\"id\": 1212, \"label\": \"咖哩\"}, {\"id\": 1206, \"label\": \"咖啡\"}, {\"id\": 180, \"label\": \"壽司\"}, {\"id\": 214, \"label\": \"小吃\"}, {\"id\": 165, \"label\": \"披薩\"}, {\"id\": 1203, \"label\": \"拉麵\"}, {\"id\": 164, \"label\": \"日式\"}, {\"id\": 198, \"label\": \"早餐\"}, {\"id\": 252, \"label\": \"東南亞\"}, {\"id\": 179, \"label\": \"歐美\"}, {\"id\": 168, \"label\": \"泰式\"}, {\"id\": 235, \"label\": \"港式\"}, {\"id\": 199, \"label\": \"湯品\"}, {\"id\": 1220, \"label\": \"滷味\"}, {\"id\": 177, \"label\": \"漢堡\"}, {\"id\": 1214, \"label\": \"火鍋\"}, {\"id\": 1227, \"label\": \"炒飯\"}, {\"id\": 1209, \"label\": \"炸雞\"}, {\"id\": 1236, \"label\": \"燒烤\"}, {\"id\": 1211, \"label\": \"牛排\"}, {\"id\": 1241, \"label\": \"甜甜圈\"}, {\"id\": 176, \"label\": \"甜點\"}, {\"id\": 171, \"label\": \"異國\"}, {\"id\": 1202, \"label\": \"粥\"}, {\"id\": 186, \"label\": \"素食\"}, {\"id\": 195, \"label\": \"義大利麵\"}, {\"id\": 1216, \"label\": \"蛋糕\"}, {\"id\": 1233, \"label\": \"豆花\"}, {\"id\": 193, \"label\": \"越式\"}, {\"id\": 189, \"label\": \"鐵板燒\"}, {\"id\": 188, \"label\": \"韓式\"}, {\"id\": 181, \"label\": \"飲料\"}, {\"id\": 1208, \"label\": \"餃子\"}, {\"id\": 1221, \"label\": \"鹹酥雞/雞排\"}, {\"id\": 201, \"label\": \"麵食\"}]}\n```\n\nOutput JSON:\n```json\n[{\"id\": ..., \"label\": \"...\"}, {\"id\": ..., \"label\": \"...\"}, ...]\n```",
 				},
 			},
 		},

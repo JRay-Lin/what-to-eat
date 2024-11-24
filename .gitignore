@@ -2,3 +2,5 @@
 */node_modules
 /vendor
 what-to-eat-key.json
+puppeteer/menu_cache.db
+puppeteer/codes.txt

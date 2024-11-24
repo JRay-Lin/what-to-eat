@@ -33,6 +33,25 @@ type MenuFetchRestaurantInfo struct {
 	Latitude       string `json:"latitude"`
 }
 
+type GeminiSuggestionRequestBody struct {
+	InitialPreference string `json:"initial_preference"`
+	AdditionalDetail  string `json:"additional_detail"`
+	Location          struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	} `json:"location"`
+	Cuisines []struct {
+		ID    int    `json:"id"`
+		Label string `json:"label"`
+	} `json:"cuisines"`
+	Menus map[string]interface{}
+}
+
+type GeminiSuggestionRespond struct {
+	Code   string `json:"code"`
+	Reason string `json:"reason"`
+}
+
 type AiSuggestionRequestBody struct {
 }
 
@@ -44,7 +63,7 @@ func init() {
 func fetchNearRestaurant(latitude float64, longitude float64, cuisineIDs []string) ([]MenuFetchRestaurantInfo, error) {
 	// Prepare the Foodpanda API request
 	client := &http.Client{
-		Timeout: 10 * time.Second, // Add timeout for safety
+		Timeout: 25 * time.Second, // Add timeout for safety
 	}
 	foodpandaURL := "https://disco.deliveryhero.io/listing/api/v1/pandora/vendors"
 	req, err := http.NewRequest("GET", foodpandaURL, nil)
@@ -96,6 +115,8 @@ func fetchNearRestaurant(latitude float64, longitude float64, cuisineIDs []strin
 				Name:           item.Name,
 				RedirectionURL: item.RedirectionURL,
 				Code:           item.Code,
+				Longitude:      fmt.Sprintf("%f", longitude),
+				Latitude:       fmt.Sprintf("%f", latitude),
 			}
 			restaurantInfos = append(restaurantInfos, info)
 		}
@@ -163,8 +184,143 @@ func fetchRestaurantMenu(restaurantCodes []string, latitude, longitude float64) 
 	return menuMap, nil
 }
 
-func aiSuggestion() {
+func aiSuggestion(requestBody RestaurantSuggestionRequestBody, menus map[string]interface{}) (GeminiSuggestionRespond, error) {
+	// // Combine request body and menus into a single struct
+	// aiRequestBody := GeminiSuggestionRequestBody{
+	// 	InitialPreference: requestBody.InitialPreference,
+	// 	AdditionalDetail:  requestBody.AdditionalDetail,
+	// 	Location:          requestBody.Location,
+	// 	Cuisines:          requestBody.Cuisines,
+	// 	Menus:             menus,
+	// }
 
+	// // Convert the struct to JSON
+	// aiRequestBodyJSON, err := json.Marshal(aiRequestBody)
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to marshal AI request body: %w", err)
+	// }
+
+	// // Create AI request payload
+	// requestPayload := structure.VertexAIRequest{
+	// 	Contents: []struct {
+	// 		Role  string `json:"role"`
+	// 		Parts []struct {
+	// 			Text string `json:"text"`
+	// 		} `json:"parts"`
+	// 	}{
+	// 		{
+	// 			Role: "user",
+	// 			Parts: []struct {
+	// 				Text string `json:"text"`
+	// 			}{
+	// 				{
+	// 					Text: string(aiRequestBodyJSON),
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+
+	// 	SystemInstruction: struct {
+	// 		Parts []struct {
+	// 			Text string `json:"text"`
+	// 		} `json:"parts"`
+	// 	}{
+	// 		Parts: []struct {
+	// 			Text string `json:"text"`
+	// 		}{
+	// 			{
+	// 				Text: "You are a restaurant picker bot. You will receive user preferences and local restaurant data in JSON format. Your task is to analyze this data and determine the restaurant that best fits the user's needs.\n\nYou will receive input in the following JSON structure:\n\n```json\n{\n    \"initial_preference\": \"user's initial preference\",\n    \"additional_Details\": \"additional details about user's preference\",\n    \"location\": {\n        \"latitude\": \"latitude of user's location\",\n        \"longitude\": \"longitude of user's location\"\n    },\n    \"cuisines\": [\n        {\n            \"id\": \"cuisine ID\",\n            \"label\": \"cuisine label\"\n        },\n        // ... more cuisines\n    ],\n    \"menus\": {\n        \"restaurant_code_1\": {\n            \"code\": \"restaurant code\",\n            \"name\": \"restaurant name\",\n            \"web_path\": \"restaurant web path\",\n            \"menus\": [\n                {\n                    \"id\": \"menu ID\",\n                    \"menu_categories\": [\n                        {\n                            \"description\": \"category description\",\n                            \"id\": \"category ID\",\n                            \"name\": \"category name\",\n                            \"menu_items\": [\n                                {\n                                    \"description\": \"item description\",\n                                    \"id\": \"item ID\",\n                                    \"name\": \"item name\",\n                                    \"price\": \"item price\"\n                                },\n                                // ... more menu items\n                            ]\n                        },\n                        // ... more menu categories\n                    ]\n                },\n                // ... more menus\n            ]\n        },\n        // ... more restaurants\n    }\n}\n```\n\nBased on this information, determine the restaurant that best suits the user's preferences, considering their initial preference, additional details, location, preferred cuisines, and the available menu items.  Pay close attention to the user's desired spice level.\n\nGenerate a JSON response in the following format:\n\n```json\n{\n\t\"code\":\"restaurant_code\",\n\t\"reason\":\"your reason for choosing this restaurant\"\n}\n```\n\nEnsure the `reason` field clearly and concisely explains why the chosen restaurant is the best match for the user.  Consider all available information when making your decision.",
+	// 			},
+	// 		},
+	// 	},
+	// 	GenerationConfig: struct {
+	// 		Temperature     float64 `json:"temperature"`
+	// 		MaxOutputTokens int     `json:"maxOutputTokens"`
+	// 		TopP            float64 `json:"topP"`
+	// 		Seed            int     `json:"seed"`
+	// 	}{
+	// 		Temperature:     0.1,
+	// 		MaxOutputTokens: 8192,
+	// 		TopP:            0.95,
+	// 		Seed:            0,
+	// 	},
+	// 	SafetySettings: []struct {
+	// 		Category  string `json:"category"`
+	// 		Threshold string `json:"threshold"`
+	// 	}{
+	// 		{
+	// 			Category:  "HARM_CATEGORY_HATE_SPEECH",
+	// 			Threshold: "OFF",
+	// 		},
+	// 	},
+	// }
+
+	// payloadBytes, err := json.Marshal(requestPayload)
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to marshal payload: %w", err)
+	// }
+
+	// // Send the request to Vertex AI
+	// apiURL := fmt.Sprintf(
+	// 	"https://%s/v1/projects/%s/locations/%s/publishers/google/models/%s:streamGenerateContent",
+	// 	ProjectInfo.ApiEndpoint, ProjectInfo.ProjectID, ProjectInfo.Location, ProjectInfo.ModelID,
+	// )
+	// req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payloadBytes))
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to create request: %w", err)
+	// }
+
+	// // Get google oauth token
+	// accessToken, err := OauthGoogle()
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to get access token: %w", err)
+	// }
+
+	// // Set headers
+	// req.Header.Set("Content-Type", "application/json")
+	// req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	// // Execute the request
+	// client := &http.Client{}
+	// resp, err := client.Do(req)
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to send request: %w", err)
+	// }
+	// defer resp.Body.Close()
+
+	// // Read the response
+	// body, err := io.ReadAll(resp.Body)
+	// if err != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to read response body: %w", err)
+	// }
+
+	// // Parse the response
+	// parsedResponse, err := ParseVertexAIResponse(string(body))
+	// // fmt.Println(parsedResponse)
+
+	// // Create an instance of the struct
+	// var aiResponse GeminiSuggestionRespond
+	// unmarshalErr := json.Unmarshal([]byte(parsedResponse), &aiResponse)
+	// if unmarshalErr != nil {
+	// 	return GeminiSuggestionRespond{}, fmt.Errorf("failed to unmarshal AI response: %w", err)
+	// }
+
+	// DEBUG
+	var firstCode string
+	for _, value := range menus {
+		menuMap := value.(map[string]interface{})
+		if code, ok := menuMap["code"].(string); ok {
+			firstCode = code
+			fmt.Println("First Code Found:", firstCode)
+			break
+		}
+	}
+	aiResponse := GeminiSuggestionRespond{
+		Code:   firstCode,
+		Reason: "test",
+	}
+
+	return aiResponse, nil
 }
 
 func RestaurantSuggestion(w http.ResponseWriter, r *http.Request) {
@@ -207,19 +363,38 @@ func RestaurantSuggestion(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch menus: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// fmt.Println("Menus:", menus)
 
-	// Prepare the final response
-	response := struct {
-		Restaurants []MenuFetchRestaurantInfo `json:"restaurants"`
-		Menus       map[string]interface{}    `json:"menus"` // Changed type to interface{}
-	}{
-		Restaurants: restaurantInfos,
-		Menus:       menus,
+	// Send menus and user preference to AI
+	suggestion, err := aiSuggestion(requestBody, menus)
+	if err != nil {
+		fmt.Println("Error getting AI suggestion:", err)
+		http.Error(w, "Failed to get AI suggestion: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Find restaurant that match the suggestion.Code
+	var matchedRestaurant MenuFetchRestaurantInfo
+	found := false
+
+	for _, restaurant := range restaurantInfos {
+		if restaurant.Code == suggestion.Code {
+			matchedRestaurant = restaurant
+			found = true
+			break
+		}
+	}
+
+	if found {
+		fmt.Printf("Matched Restaurant: %+v\n", matchedRestaurant)
+	} else {
+		fmt.Printf("No restaurant matches the code: %s\n", suggestion.Code)
+		// fmt.Println(restaurantInfos)
 	}
 
 	// Return the final response as JSON
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(matchedRestaurant); err != nil {
 		fmt.Println("Error encoding response:", err)
 		http.Error(w, "Failed to encode response: "+err.Error(), http.StatusInternalServerError)
 		return
